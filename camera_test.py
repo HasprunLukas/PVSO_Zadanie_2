@@ -11,17 +11,40 @@ objp[:, :2] = np.mgrid[0:7, 0:5].T.reshape(-1, 2)
 objpoints = []  # 3d point in real world space
 imgpoints = []  # 2d points in image plane.
 
-### runn this command first echo 0|sudo tee /sys/module/usbcore/parameters/usbfs_memory_mb  ###
+
+def hough_trans_circle(image):
+    # convert to gray scale
+    gray = cv2.ctvColor(image, cv2.COLOR_BRG2GRAY)
+    # apply median blur to avoid false circle detection
+    gray = cv2.medianBlur(gray, 5)
+    rows = gray.shape[0]
+    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
+                               param1=100, param2=300, minRadius=1, maxRadius=30)
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        for i in circles[0, :]:
+            center = (i[0], i[1])
+            # circle center
+            cv2.circle(image, center, 1, (0, 100, 100), 3)
+            # circle outline
+            radius = i[2]
+            cv2.circle(image, center, radius, (255, 0, 255), 3)
+
+    cv2.imshow("detected circles", image)
+
 
 def get_chessboard(file):
     cv2.imwrite('chessboard.jpg', file)
+
 
 def open_image(path):
     img = cv2.imread(path)
     cv2.imshow('test', img)
 
+
 def print_intrinsic_properties(gray):
-    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
+        objpoints, imgpoints, gray.shape[::-1], None, None)
     fx = mtx[0][0]
     fy = mtx[1][1]
     cx = mtx[0][2]
@@ -32,6 +55,7 @@ def print_intrinsic_properties(gray):
     print("cy : " + str(cy))
     print(mtx)
 
+
 def test_function(name):
     img = cv2.imread(name)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -41,13 +65,15 @@ def test_function(name):
     print(ret)
     if ret == True:
         objpoints.append(objp)
-        corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+        corners2 = cv2.cornerSubPix(
+            gray, corners, (11, 11), (-1, -1), criteria)
         imgpoints.append(corners2)
         # Draw and display the corners
         cv2.drawChessboardCorners(img, (7, 5), corners2, ret)
         cv2.imshow('img', img)
         print_intrinsic_properties(gray)
         cv2.waitKey(500)
+
 
 def main():
     # create instance for first connected camera
@@ -86,6 +112,8 @@ def main():
         #     open_image('chessboard_BKP.jpg')
         if key == ord('t'):
             test_function('chessboard_BKP.jpg')
+        if key == ord('c'):
+            hough_trans_circle(image)
         key = cv2.waitKey()
 
     # stop data acquisition
@@ -100,4 +128,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
