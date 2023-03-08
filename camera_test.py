@@ -2,6 +2,7 @@ from ximea import xiapi
 import cv2
 import numpy as np
 
+
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -13,13 +14,17 @@ imgpoints = []  # 2d points in image plane.
 
 
 def hough_trans_circle(image):
-    # convert to gray scale
-    gray = cv2.ctvColor(image, cv2.COLOR_BRG2GRAY)
-    # apply median blur to avoid false circle detection
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
     gray = cv2.medianBlur(gray, 5)
+
     rows = gray.shape[0]
-    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
-                               param1=100, param2=300, minRadius=1, maxRadius=30)
+    # print(rows)
+    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 2,
+                              param1=100, param2=35,
+                              minRadius=30, maxRadius=100)
+
+    # print(circles)
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
@@ -33,8 +38,8 @@ def hough_trans_circle(image):
     cv2.imshow("detected circles", image)
 
 
-def get_chessboard(file):
-    cv2.imwrite('chessboard.jpg', file)
+def get_chessboard(file, counter):
+    cv2.imwrite('chessboard' + str(counter) + '.jpg', file)
 
 
 def open_image(path):
@@ -56,23 +61,24 @@ def print_intrinsic_properties(gray):
     print(mtx)
 
 
-def test_function(name):
-    img = cv2.imread(name)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners(gray, (5, 7), None)
-    # If found, add object points, image points (after refining them)
-    print(ret)
-    if ret == True:
-        objpoints.append(objp)
-        corners2 = cv2.cornerSubPix(
-            gray, corners, (11, 11), (-1, -1), criteria)
-        imgpoints.append(corners2)
-        # Draw and display the corners
-        cv2.drawChessboardCorners(img, (7, 5), corners2, ret)
-        cv2.imshow('img', img)
-        print_intrinsic_properties(gray)
-        cv2.waitKey(500)
+def chess_function(names):
+    for name in names:
+        img = cv2.imread(name)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Find the chess board corners
+        ret, corners = cv2.findChessboardCorners(gray, (5, 7), None)
+        # If found, add object points, image points (after refining them)
+        # print(ret)
+        if ret == True:
+            objpoints.append(objp)
+            corners2 = cv2.cornerSubPix(
+                gray, corners, (11, 11), (-1, -1), criteria)
+            imgpoints.append(corners2)
+            # Draw and display the corners
+            cv2.drawChessboardCorners(img, (7, 5), corners2, ret)
+            cv2.imshow(name, img)
+            print_intrinsic_properties(gray)
+            cv2.waitKey(500)
 
 
 def main():
@@ -99,7 +105,9 @@ def main():
     print('Starting data acquisition...')
     cam.start_acquisition()
 
+    counter = 0
     key = cv2.waitKey()
+    chess_images = ['chessboard0.jpg', 'chessboard1.jpg', 'chessboard2.jpg', 'chessboard3.jpg']
     while key != ord('q'):
         cam.get_image(img)
         image = img.get_image_data_numpy()
@@ -107,11 +115,12 @@ def main():
         # image = cv2.imread('chessboard_BKP.jpg')
         cv2.imshow("test", image)
         # if key == ord('c'):
-        #     get_chessboard(image)
+        #     get_chessboard(image, counter)
+        #     counter = counter + 1
         # if key == ord('p'):
         #     open_image('chessboard_BKP.jpg')
         if key == ord('t'):
-            test_function('chessboard_BKP.jpg')
+            chess_function(chess_images)
         if key == ord('c'):
             hough_trans_circle(image)
         key = cv2.waitKey()
