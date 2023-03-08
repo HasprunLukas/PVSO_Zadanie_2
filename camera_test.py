@@ -21,8 +21,8 @@ def hough_trans_circle(image):
     rows = gray.shape[0]
     # print(rows)
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 2,
-                              param1=100, param2=35,
-                              minRadius=30, maxRadius=100)
+                              param1=200, param2=40,
+                              minRadius=0, maxRadius=150)
 
     # print(circles)
     if circles is not None:
@@ -111,8 +111,15 @@ def main():
     while key != ord('q'):
         cam.get_image(img)
         image = img.get_image_data_numpy()
-        image = cv2.resize(image, (240, 240))
+        # image = cv2.resize(image, (240, 240))
         # image = cv2.imread('chessboard_BKP.jpg')
+
+        scale_percent = 30  # percent of original size
+        width = int(image.shape[1] * scale_percent / 100)
+        height = int(image.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
         cv2.imshow("test", image)
         # if key == ord('c'):
         #     get_chessboard(image, counter)
